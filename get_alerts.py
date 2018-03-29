@@ -33,7 +33,7 @@ class option_getter(object):
         if options.empty:
             self.option = None
             return
-
+        options = options[options['iteration']==options['iteration'].max()]
         expiration = options['Expiry'].unique()[0]
         options = options[options['Expiry']==expiration]
         options['Expiry'] = options['Expiry'].dt.strftime('%Y%m%d')
