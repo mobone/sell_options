@@ -45,12 +45,17 @@ class option_getter(object):
         self.option['Closed'] = False
         self.option['Current Price'] = None
 
+
         self.option['_id'] = str(self.alert['Ticker'])+'_'+str(self.option['Expiry'].values[0])
         #self.option = pd.concat([self.option, self.alert[1:].T])
         for i in self.alert.keys():
             self.option[i] = self.alert[i]
+        self.option['Start Trade Date'] = datetime.now().strftime('%Y%m%d')
+        self.option['Start Iteration'] = self.option['iteration']
+        del self.option['iteration']
         #self.option = self.option.T
         del self.option['No.']
+        del self.option['Change']
         self.json_doc = self.option.to_json(orient='records')
 
 
@@ -69,8 +74,8 @@ client = pymongo.MongoClient(mongo_string)
 db = client.finance
 collection = db.options
 
-for change in ['u5', 'd5']:
-    df = pd.read_html('https://finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o300,sh_opt_option,ta_change_'+ change, header=0)
+for change in ['u4', 'd4']:
+    df = pd.read_html('https://finviz.com/screener.ashx?v=111&f=cap_smallover,sh_avgvol_o500,sh_opt_option,ta_change_'+ change, header=0)
     df = df[len(df)-2]
     for row in df.iterrows():
         option_getter(row[1])
