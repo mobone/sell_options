@@ -60,11 +60,6 @@ class backtest(Process):
 
 
     def get_start_end_dates(self):
-        #options = options_coll.find({'Root': self.symbol, 'iteration': 7}).distinct('Update_Date')
-        #dates = pd.DataFrame(list(options))
-        #dates = dates.sort_values(by=0)
-        #self.start_date = dates.head(1).values[0][0]
-        #self.end_date = dates.tail(1).values[0][0]
         self.start_date = '20171031'
         self.end_date = '20180501'
 
@@ -132,58 +127,21 @@ class backtest(Process):
             #input()
             buy_price = selected_option['Bid']
             sell_price = None
-            """
-            for row in option_history.iterrows():
-                row_df = row[1]
 
-                if row_df['Ask']>=self.stop_loss:
-                    sell_price = row_df['Ask']
-                    #print(self.selected_option)
-                    #print(row_df)
-                    #exit()
-                    break
-                if row_df['Ask']<=self.profit_taking:
-                    sell_price = row_df['Ask']
-                    break
-
-
-            if sell_price is None:
-                final_option = option_history.ix[:,['Update_Date', 'Expiry', 'iteration', 'Bid', 'Ask']].tail(3).head(1).squeeze()
-                sell_price = final_option['Ask']
-            """
             max_loss = option_history['Ask'].max()
+
             if option_history.tail(3).head(1)['Update_Date']==option_history.tail(3).head(1)['Expiry'] and option_history.tail(3).head(1)['Underlying_Price']<option_history.tail(3).head(1)['Strike']:
                 sell_price = 0.00
             else:
                 final_option = option_history.ix[:,['Update_Date', 'Expiry', 'iteration', 'Bid', 'Ask']].tail(3).head(1).squeeze()
                 sell_price = final_option['Ask']
 
-
-            #option_history['Mid Point'] = (option_history['Bid'] + option_history['Ask'])/2.0
-
-            """
-            fifty_percent = option_history[option_history['Bid']<(buy_price/2.0)]
-            if len(fifty_percent):
-                self.selected_option['Fifty Percent'] = True
-            else:
-                self.selected_option['Fifty Percent'] = False
-            """
-
-            #final_option = option_history.ix[:,:].tail(3).head(1).squeeze()
-
-
-            #print(len(option_history))
-
-            #if final_option['Expiry'] == expiry_date and final_option['Strike']<final_option['Underlying_Price']:
-            #    sell_price = 0.0
-            #else:
-            #    sell_price = final_option['Bid']
             selected_option['Buy Price'] = buy_price
             selected_option['Sell Price'] = sell_price
             selected_option['Return Percent'] = ((sell_price-buy_price)/buy_price)*-1
             selected_option['Profit'] = ((buy_price - sell_price)*100)-6
             selected_option['Max Loss'] = float(max_loss)
-            #option_history.index = range(len(option_history), 0, -1)
+
             # todo days till expiration
             print(selected_option)
             input()
@@ -218,8 +176,7 @@ class backtest(Process):
 
         self.option_symbol = option['Symbol'].values[0]
         self.selected_option = option
-        #self.selected_option = option.squeeze()
-        #print(self.option_symbol)
+
         self.get_option_results()
 
 def check_if_running(processes):
@@ -239,7 +196,6 @@ if __name__ == '__main__':
     options_coll = db.options_2
     q = Queue()
     out_q = Queue()
-
 
     #symbols = list(options_coll.find({},{'Root': 1}).distinct('Root'))
     symbols = ['BBY']
