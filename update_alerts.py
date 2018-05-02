@@ -3,6 +3,14 @@ import pymongo
 from datetime import datetime, timedelta
 import json
 from time import sleep
+import configparser
+
+config = configparser.ConfigParser()
+config.read('config.cfg')
+username = config['creds']['User']
+password = config['creds']['Pass']
+ip = config['conn']['ip']
+
 class alert_update(object):
     def __init__(self, alert):
         self.alert = alert
@@ -86,8 +94,10 @@ def get_start_times():
             break
     return start_times, start_index
 
-mongo_string = 'mongodb://192.168.1.24:27017/'
-client = pymongo.MongoClient(mongo_string)
+client = pymongo.MongoClient(ip+':27017',
+                             username = username,
+                             password = password,
+                             authSource='finance')
 db = client.finance
 options_coll = db.options
 alerts_coll = db.put_sales
@@ -95,9 +105,9 @@ alerts_coll = db.put_sales
 
 start_times, start_index = get_start_times()
 for start_index in range(start_index, len(start_times)):
-    print("Updater sleeping", datetime.now(), start_times[start_index], start_index)
-    while datetime.now()<start_times[start_index]:
-        sleep(10)
+    #print("Updater sleeping", datetime.now(), start_times[start_index], start_index)
+    #while datetime.now()<start_times[start_index]:
+    #    sleep(10)
     alerts = alerts_coll.find({'Closed': False})
     profits = []
     worst_profits = []
@@ -108,3 +118,4 @@ for start_index in range(start_index, len(start_times)):
         profits.append(x.profit)
         worst_profits.append(x.alert['Worst Profit'])
     print('>>',sum(profits), sum(worst_profits))
+    break
