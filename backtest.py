@@ -32,6 +32,12 @@ class backtest(Process):
 
 
     def run(self):
+        self.output_columns = ['SMA20', 'SMA50', 'SMA200', 'Perf Week',
+                               'Perf Month', 'Perf Quarter', 'Volatility_Week',
+                               'Volatility_Month', 'Recom', 'RSI (14)', 'Rel Volume',
+                               '52W High', '52W Low', 'Bid', 'Ask', 'Strike Distance',
+                               'Days left', 'Expired', 'Strike Num', 'Underlying_Price',
+                               'Market Cap', 'Profit', 'Max Loss']
         client = pymongo.MongoClient(ip+':27017',
                                      username = username,
                                      password = password,
@@ -61,6 +67,7 @@ class backtest(Process):
 
     def get_start_end_dates(self):
         self.start_date = '20171031'
+        self.start_date = '20171117'
         self.end_date = '20180501'
 
     def get_historical_data(self):
@@ -71,9 +78,9 @@ class backtest(Process):
         for self.date_index in range(1,len(self.historical)):
             prev_close =  self.historical.iloc[self.date_index-1]['Close']
             todays_date = str(self.historical.iloc[self.date_index]['Date']).replace('-','').split(' ')[0]
-
+            previous_date = str(self.historical.iloc[self.date_index-1]['Date']).replace('-','').split(' ')[0]
             query = {'Root': self.symbol, 'iteration': 7, 'Update_Date': todays_date, 'Type': 'p'}
-            print(query)
+            #print(query)
 
             try:
                 price = self.options_coll.find_one(query,{'Underlying_Price': 1})['Underlying_Price']
@@ -81,23 +88,39 @@ class backtest(Process):
                 continue
 
             alert_level = (price-prev_close)/prev_close
-            print(todays_date, alert_level, self.alert_level)
+            #print(todays_date, alert_level, self.alert_level)
             #input()
 
             if alert_level>self.alert_level and alert_level<.8:
-                self.get_finviz(query)
+                self.get_finviz(query.copy(), previous_date)
+
                 self.get_todays_option(query, price, todays_date, alert_level)
 
-    def get_finviz(self, query):
-        query['Date'] = int(query['Update_Date'])
+    def get_finviz(self, query, previous_date):
+        query['Date'] = int(previous_date)
         del query['Update_Date']
         del query['iteration']
         del query['Type']
 
-        print(query)
-        self.finviz_data = self.options_coll.find_one(query)
-        print(self.finviz_data)
-        input()
+        finviz_df = pd.DataFrame(self.finviz_coll.find_one(query), index=[0])
+
+        for i in list(finviz_df.columns):
+            if i not in self.output_columns:
+                del finviz_df[i]
+        if 'Market Cap' in finviz_df.columns:
+            market_cap_value = finviz_df['Market Cap'].values[0]
+            if 'K' in market_cap_value:
+                market_cap_value = float(market_cap_value[:-1])*1000
+            elif 'M' in market_cap_value:
+                market_cap_value = float(market_cap_value[:-1])*1000000
+            elif 'B' in market_cap_value:
+                market_cap_value = float(market_cap_value[:-1])*1000000000
+
+            finviz_df['Market Cap'] = market_cap_value
+
+        self.finviz_df = finviz_df
+
+
 
     def get_option_results(self):
         for i in self.selected_option.iterrows():
@@ -112,29 +135,33 @@ class backtest(Process):
                             '$gt': start_date
                             }
                         }
-            print(query)
+            #print('2:',query)
 
             option_history = pd.DataFrame(list(self.options_coll.find(query)))
-
+            #print(option_history.head())
+            #print('got result')
             try:
                 option_history = option_history.sort_values(by=['Update_Date', 'iteration'])
             except Exception as e:
-                print(e)
+                #print(e)
                 selected_option = None
                 option_symbol = None
                 return
-            print(option_history)
+            #print(option_history)
             #input()
             buy_price = selected_option['Bid']
             sell_price = None
 
             max_loss = option_history['Ask'].max()
-
-            if option_history.tail(3).head(1)['Update_Date']==option_history.tail(3).head(1)['Expiry'] and option_history.tail(3).head(1)['Underlying_Price']<option_history.tail(3).head(1)['Strike']:
+            #print(option_history.tail(3).head(1)['Update_Date'].values[0], option_history.tail(3).head(1)['Expiry'].values[0])
+            #print(option_history.tail(3).head(1)['Underlying_Price'].values[0],option_history.tail(3).head(1)['Strike'].values[0])
+            if option_history.tail(3).head(1)['Update_Date'].values[0]==option_history.tail(3).head(1)['Expiry'].values[0] and option_history.tail(3).head(1)['Underlying_Price'].values[0]<option_history.tail(3).head(1)['Strike'].values[0]:
                 sell_price = 0.00
+                selected_option['Expired'] = True
             else:
                 final_option = option_history.ix[:,['Update_Date', 'Expiry', 'iteration', 'Bid', 'Ask']].tail(3).head(1).squeeze()
                 sell_price = final_option['Ask']
+                selected_option['Expired'] = False
 
             selected_option['Buy Price'] = buy_price
             selected_option['Sell Price'] = sell_price
@@ -142,9 +169,13 @@ class backtest(Process):
             selected_option['Profit'] = ((buy_price - sell_price)*100)-6
             selected_option['Max Loss'] = float(max_loss)
 
+            selected_option['Days left'] = int(str(selected_option['Expiry'] - selected_option['Update_Date']).split(' ')[0])
+
             # todo days till expiration
-            print(selected_option)
-            input()
+            for i in self.finviz_df.columns:
+                selected_option[i] = self.finviz_df[i].values[0]
+            #print(selected_option)
+            selected_option = selected_option[self.output_columns]
             self.out_q.put(selected_option)
 
 
@@ -153,11 +184,12 @@ class backtest(Process):
         option_end_date = (datetime.strptime(todays_date,'%Y%m%d')+timedelta(days=50)).strftime('%Y%m%d')
         query['Strike'] = {'$lt': price}
         query['Expiry'] = {'$gte': option_start_date, '$lte': option_end_date}
-        print(query)
+        #print('3:',query)
         #input()
+
         options = pd.DataFrame(list(self.options_coll.find(query)))
-        print(options)
-        print(len(options))
+
+        #print(len(options))
         if len(options) == 0:
             return
         # TODO: incorporate into query
@@ -168,13 +200,17 @@ class backtest(Process):
         if len(options) == 0:
             return
         options = options.sort_values(by='Strike')
-        print(options)
+        #print(options)
         #input()
         options['Expiry'] = pd.to_datetime(options['Expiry'])
 
         option = options.head(5)
+        option = options.sort_values(by='Strike', ascending=False)
+        option['Strike Num'] = option['Strike'].rank(method='dense')
+        option['Update_Date'] = pd.to_datetime(option['Update_Date'])
 
-        self.option_symbol = option['Symbol'].values[0]
+
+        #self.option_symbol = option['Symbol'].values[0]
         self.selected_option = option
 
         self.get_option_results()
@@ -197,9 +233,10 @@ if __name__ == '__main__':
     q = Queue()
     out_q = Queue()
 
-    #symbols = list(options_coll.find({},{'Root': 1}).distinct('Root'))
-    symbols = ['BBY']
-    shuffle(symbols)
+    symbols = list(options_coll.find({},{'Root': 1}).distinct('Root'))
+    print(symbols)
+    #symbols = ['BBY']
+    #shuffle(symbols)
 
     for symbol in symbols:
         q.put(symbol)
@@ -210,16 +247,16 @@ if __name__ == '__main__':
     alert_level = .01
     #strike_distance = .10
     processes = []
-    """
-    for i in range(15):
 
-        x = backtest(q, out_q,low_price, high_price, stop_loss, profit_taking, alert_level, strike_distance)
+    for i in range(12):
+        x = backtest(q, out_q,low_price, high_price, stop_loss, profit_taking, alert_level)
         x.start()
+        #x.run()
         sleep(1)
         processes.append(x)
-    """
-    x = backtest(q, out_q,low_price, high_price, stop_loss, profit_taking, alert_level)
-    x.run()
+
+    #x = backtest(q, out_q,low_price, high_price, stop_loss, profit_taking, alert_level)
+    #x.run()
     results = []
     histories = []
     start_qsize = q.qsize()
@@ -228,24 +265,27 @@ if __name__ == '__main__':
             result = out_q.get(timeout=1)
         except:
             continue
+
+
         results.append(result.T)
         #histories.append(history)
         df = pd.DataFrame(results)
+
         #history_df = pd.DataFrame(histories)
         #history_df = history_df.T
         #history_df['Avg'] = history_df.mean(axis=1)
         #print(history_df.T)
 
-        metrtics = [df['Profit'].sum(),df[df['Alert Level']>0]['Profit'].sum(), \
-              df[df['Alert Level']>0]['Profit'].mean(), \
-              df[df['Alert Level']>0]['Profit'].min(), \
-              len(df[df['Alert Level']>0]['Profit'])]
+
         #print(pd.DataFrame([metrtics], columns = ['Total Profit', 'Pos Alert Total', 'Pos Alert Mean', 'Neg Alert Mean', 'Pos Alert Max Loss', 'Neg Alert Max Loss', 'Pos Count', 'Neg Count']))
-        print(df.describe())
-        print(df.corr()['Profit'])
+        print(df.describe().ix[:,['Profit','Max Loss']])
+        print(df.corr().ix[:,['Profit','Max Loss']])
         print(df['Profit'].sum())
         this_qsize = q.qsize()
-        print((this_qsize-start_qsize)/start_qsize)
+        try:
+            print((this_qsize-start_qsize)/start_qsize)
+        except:
+            pass
         try:
             df.to_csv('results.csv')
         except:
