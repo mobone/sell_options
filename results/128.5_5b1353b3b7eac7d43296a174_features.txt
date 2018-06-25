@@ -1,0 +1,1 @@
+{"trade_count": 150, "alert_level": 0.02, "exp_count": 4, "features": ["SMA50", "SMA200", "Perf Week", "Perf Quarter", "Recom", "RSI (14)", "Bid", "Alert Level"], "strike_num": null, "Underlying_Price": null, "targets": ["Profit"]}

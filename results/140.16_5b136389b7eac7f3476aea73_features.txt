@@ -1,0 +1,1 @@
+{"alert_level": 0.02, "features": ["SMA20", "SMA50", "Volatility_Week", "Rel Volume", "Bid", "Ask"], "trade_count": 100, "Underlying_Price": null, "exp_count": 4, "strike_num": null, "targets": ["Profit"]}

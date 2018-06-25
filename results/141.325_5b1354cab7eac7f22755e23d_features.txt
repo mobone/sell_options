@@ -1,0 +1,1 @@
+{"targets": ["Profit"], "strike_num": null, "trade_count": 100, "exp_count": 4, "Underlying_Price": null, "alert_level": 0.02, "features": ["SMA50", "Perf Week", "Perf Month", "Volatility_Week", "Rel Volume", "Bid", "Strike Num", "Alert Level"]}

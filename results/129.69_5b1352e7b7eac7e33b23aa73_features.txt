@@ -1,0 +1,1 @@
+{"exp_count": 4, "targets": ["Profit"], "trade_count": 100, "Underlying_Price": null, "strike_num": null, "alert_level": 0.02, "features": ["SMA20", "SMA50", "SMA200", "Bid", "Ask", "Strike Distance", "Alert Level"]}

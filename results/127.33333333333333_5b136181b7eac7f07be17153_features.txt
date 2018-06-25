@@ -1,0 +1,1 @@
+{"strike_num": null, "trade_count": 150, "alert_level": 0.02, "Underlying_Price": null, "features": ["Perf Week", "Perf Quarter", "Recom", "Bid", "Ask", "Strike Distance", "Alert Level"], "targets": ["Profit"], "exp_count": 4}

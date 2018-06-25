@@ -37,7 +37,7 @@ class backtest(Process):
                                'Volatility_Month', 'Recom', 'RSI (14)', 'Rel Volume',
                                '52W High', '52W Low', 'Bid', 'Ask', 'Strike Distance',
                                'Days left', 'Expired', 'Strike Num', 'Underlying_Price',
-                               'Market Cap', 'Profit', 'Max Loss']
+                               'Market Cap', 'Alert Level', 'Profit', 'Max Loss']
         client = pymongo.MongoClient(ip+':27017',
                                      username = username,
                                      password = password,
@@ -90,7 +90,7 @@ class backtest(Process):
             alert_level = (price-prev_close)/prev_close
             #print(todays_date, alert_level, self.alert_level)
             #input()
-
+            self.stock_alert_level = alert_level
             if alert_level>self.alert_level and alert_level<.8:
                 self.get_finviz(query.copy(), previous_date)
 
@@ -166,6 +166,7 @@ class backtest(Process):
             selected_option['Buy Price'] = buy_price
             selected_option['Sell Price'] = sell_price
             selected_option['Return Percent'] = ((sell_price-buy_price)/buy_price)*-1
+            selected_option['Alert Level'] = self.stock_alert_level
             selected_option['Profit'] = ((buy_price - sell_price)*100)-6
             selected_option['Max Loss'] = float(max_loss)
 
@@ -248,7 +249,7 @@ if __name__ == '__main__':
     #strike_distance = .10
     processes = []
 
-    for i in range(12):
+    for i in range(6):
         x = backtest(q, out_q,low_price, high_price, stop_loss, profit_taking, alert_level)
         x.start()
         #x.run()
