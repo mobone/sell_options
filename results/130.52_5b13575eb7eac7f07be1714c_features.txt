@@ -1,1 +1,0 @@
-{"strike_num": null, "trade_count": 150, "alert_level": 0.02, "Underlying_Price": null, "features": ["SMA20", "Perf Month", "Volatility_Week", "Rel Volume", "Bid", "Strike Distance"], "targets": ["Profit"], "exp_count": 4}

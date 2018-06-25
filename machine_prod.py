@@ -68,6 +68,7 @@ class machine(Process):
                 continue
             # create results
             output_df = pd.DataFrame(dict([ (k,pd.Series(v)) for k,v in output.items() ]))
+            del output_df['Predicted_cutoff']
             output_df = output_df.describe().T[::-1]
 
             output_df.loc['Change'] = output_df.ix[:2,:].pct_change().ix['Trades After',:]
@@ -82,11 +83,13 @@ class machine(Process):
                 res.index = res['index']+' '+res['variable']
                 del res['variable']
                 del res['index']
-                res = json.loads(res.to_json())
 
+                res = json.loads(res.to_json())
                 res['value']['Features'] = self.selected_features['features']
                 res['value']['Trade Count'] = self.selected_features['trade_count']
                 res['value']['Cutoff'] = sum(output['Predicted_cutoff'])/len(output['Predicted_cutoff'])
+
+                self.selected_features['Cutoff'] = res['value']['Cutoff']
                 res['value']['strike_num'] = self.selected_features['strike_num']
                 res['value']['Underlying_Price'] = self.selected_features['Underlying_Price']
                 before_sum = (sum(output['Trades Before']) - (6*len(output['Trades Before'])))/float(self.selected_features['exp_count'])
@@ -189,7 +192,7 @@ if __name__ == '__main__':
 
 
 
-    for i in range(9):
+    for i in range(1):
         x = machine()
         x.start()
         sleep(.1)

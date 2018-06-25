@@ -1,1 +1,0 @@
-{"targets": ["Profit"], "features": ["SMA200", "Perf Week", "Perf Quarter", "Volatility_Week", "Recom", "RSI (14)", "Rel Volume", "Bid"], "strike_num": null, "trade_count": 150, "Underlying_Price": null, "exp_count": 4, "alert_level": 0.02}

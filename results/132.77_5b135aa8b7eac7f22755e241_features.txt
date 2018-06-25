@@ -1,1 +1,0 @@
-{"targets": ["Profit"], "strike_num": null, "trade_count": 100, "exp_count": 4, "Underlying_Price": null, "alert_level": 0.02, "features": ["Perf Month", "RSI (14)", "Rel Volume", "Bid", "Ask", "Alert Level"]}

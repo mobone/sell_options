@@ -1,1 +1,0 @@
-{"exp_count": 4, "alert_level": 0.02, "features": ["Perf Week", "Volatility_Week", "Recom", "RSI (14)", "Bid", "Ask", "Strike Distance"], "targets": ["Profit"], "strike_num": null, "Underlying_Price": null, "trade_count": 150}

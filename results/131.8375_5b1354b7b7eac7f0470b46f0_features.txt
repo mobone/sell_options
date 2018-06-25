@@ -1,1 +1,0 @@
-{"trade_count": 100, "features": ["Perf Week", "Perf Month", "Perf Quarter", "Volatility_Week", "Rel Volume", "Bid", "Strike Num", "Alert Level"], "targets": ["Profit"], "exp_count": 4, "Underlying_Price": null, "alert_level": 0.02, "strike_num": null}
